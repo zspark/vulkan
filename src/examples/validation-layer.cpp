@@ -1,5 +1,4 @@
 #include <iostream>
-#include <stdexcept>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
@@ -13,13 +12,12 @@
 #include "vulkan-tutorial/printer.hpp"
 #include "vulkan-tutorial/vulkan-utils.hpp"
 
-const char *const APP_NAME = "physical device";
+const char *const APP_NAME = "validation layer";
 const char *const ENGINE_NAME = "ratel";
 
 int main(int argc, char **argv) {
     GLFWwindow *_wnd{nullptr};
     VkInstance _ins{VK_NULL_HANDLE};
-    VkPhysicalDevice _phyDev{VK_NULL_HANDLE};
 
     glfw::init();
 
@@ -31,17 +29,23 @@ int main(int argc, char **argv) {
         goto destroy;
     }
 
-    if (!(_phyDev = vulkan::getPhysicalDevice(_ins))) {
+#ifndef NDEBUG
+    VkDebugUtilsMessengerEXT _messenger{VK_NULL_HANDLE};
+    if (!(_messenger = vulkan::createDebugUtilsMessenger(_ins))) {
         goto destroy;
     }
+#endif
 
     while (!glfwWindowShouldClose(_wnd)) {
-        glfwSwapBuffers(_wnd);
         glfwPollEvents();
     }
 
+
 destroy:
     fprintf(stdout, "destroy called.");
+#ifndef NDEBUG
+    vulkan::destroyDebugUtilsMessenger(_ins, _messenger);
+#endif
     if (_ins)
         vkDestroyInstance(_ins, nullptr);
     if (_wnd)

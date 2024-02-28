@@ -1,3 +1,3 @@
 mkdir .build
 cd .build
-cmake -G "Visual Studio 17 2022" ..
+cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -G "Visual Studio 17 2022" ..

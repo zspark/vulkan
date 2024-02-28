@@ -25,6 +25,12 @@ set(EXAMPLES
     layers-and-extensions
     instance
     physical-device
+    queue-families
+    logical-device
+    surface
+    swap-chain
+    image-view
+    validation-layer
 )
 
 buildExamples()

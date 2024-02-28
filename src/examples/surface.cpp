@@ -1,10 +1,11 @@
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
 
-#define GLFW_INCLUDE_VULKAN
+#define GLFW_INCLUDE_VULKAN /// to encircle APIs such as `glfwCreateWindowSurface`;
 #include <GLFW/glfw3.h>
 
 #include <vulkan/vulkan.h>
@@ -17,9 +18,10 @@ const char *const APP_NAME = "physical device";
 const char *const ENGINE_NAME = "ratel";
 
 int main(int argc, char **argv) {
+
     GLFWwindow *_wnd{nullptr};
-    VkInstance _ins{VK_NULL_HANDLE};
-    VkPhysicalDevice _phyDev{VK_NULL_HANDLE};
+    VkInstance _ins{nullptr};
+    VkSurfaceKHR _surface{nullptr};
 
     glfw::init();
 
@@ -31,17 +33,24 @@ int main(int argc, char **argv) {
         goto destroy;
     }
 
-    if (!(_phyDev = vulkan::getPhysicalDevice(_ins))) {
+    if (!(_surface = vulkan::createSurface(_ins, _wnd))) {
         goto destroy;
     }
 
     while (!glfwWindowShouldClose(_wnd)) {
-        glfwSwapBuffers(_wnd);
+        /**
+         * Error: Cannot swap buffers of a window that has no OpenGL or OpenGL ES context
+         * so, we can't use the api below any more.
+         *
+         * glfwSwapBuffers(_wnd);
+         */
         glfwPollEvents();
     }
 
 destroy:
     fprintf(stdout, "destroy called.");
+    if (_surface)
+        vkDestroySurfaceKHR(_ins, _surface, nullptr);
     if (_ins)
         vkDestroyInstance(_ins, nullptr);
     if (_wnd)
