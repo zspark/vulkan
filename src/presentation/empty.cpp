@@ -3,6 +3,6 @@
 #include <iostream>
 
 int main(int argc, char** argv) {
-    std::cout<<"hello, long time no see!"<<std::endl;
+    std::cout<<"Hello World!"<<std::endl;
     exit(EXIT_SUCCESS);
 }

@@ -406,7 +406,7 @@ static bool getSwapchainImages(VkDevice dev, VkSwapchainKHR swapChain, std::vect
     return true;
 }
 
-static bool createImageViews(VkDevice dev, const std::vector<VkImage> &vecImage, VkFormat format, VkExtent2D ext, std::vector<VkImageView> &out) {
+static bool createImageViews(VkDevice dev, const std::vector<VkImage> &vecImage, VkFormat format, std::vector<VkImageView> &out) {
     out.resize(vecImage.size());
 
     for (size_t i = 0; i < vecImage.size(); i++) {
