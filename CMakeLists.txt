@@ -37,5 +37,5 @@ file(GLOB IMGUI_SRC "./external/imgui/*.cpp")
 
 #message("IMGUI_SRC:${IMGUI_SRC}")
 
-add_subdirectory(src/common)
-add_subdirectory(src/presentation)
+#add_subdirectory(src/common)
+add_subdirectory(src)

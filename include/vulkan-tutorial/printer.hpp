@@ -140,7 +140,7 @@ static void surfaceCapabilities(const VkSurfaceCapabilitiesKHR &value) {
 }
 
 static void surfaceFormats(const std::vector<VkSurfaceFormatKHR> &vecFormat) {
-    fprintf(stdout, "surface formats count: (%d)\n", vecFormat.size());
+    fprintf(stdout, "surface formats count: (%zu)\n", vecFormat.size());
     int i = 0;
     for (const auto &v : vecFormat) {
         cout                                                                            // a
@@ -152,7 +152,7 @@ static void surfaceFormats(const std::vector<VkSurfaceFormatKHR> &vecFormat) {
 }
 
 static void surfacePresentModes(const std::vector<VkPresentModeKHR> &vecPresentMode) {
-    fprintf(stdout, "surface present modes count: (%d)\n", vecPresentMode.size());
+    fprintf(stdout, "surface present modes count: (%zu)\n", vecPresentMode.size());
     int i = 0;
     for (const auto &v : vecPresentMode) {
         cout                                                                // a

@@ -9,8 +9,10 @@
     }
     */
 
+#include <fstream>
 #include <optional>
 #include <stdio.h>
+#include <unordered_set>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -44,6 +46,12 @@ static void _keyCallback(GLFWwindow *window, int key, int scancode, int action, 
 }
 
 namespace utils {
+
+/**
+ * vulkan application does NOT need these:
+ * glfwMakeContextCurrent(_wnd);
+ * glfwSwapInterval(1);
+ */
 static bool createWindow(const char *caption, GLFWwindow **a, uint32_t w = 640u, uint32_t h = 480u) {
     if (!_glfwInited && (!_init())) {
         fprintf(stderr, "failed to init glfw library!\n");
@@ -59,12 +67,6 @@ static bool createWindow(const char *caption, GLFWwindow **a, uint32_t w = 640u,
 
     glfwSetKeyCallback(_wnd, _keyCallback);
     glfwSetErrorCallback(_errorCallback);
-
-    /*
-     * vulkan application does NOT need these:
-     * glfwMakeContextCurrent(_wnd);
-     * glfwSwapInterval(1);
-     */
 
     *a = _wnd;
     return true;
@@ -84,18 +86,50 @@ struct CapableQueueFamilies {
     std::optional<uint32_t> presentFamilyIndex = std::nullopt;
 
     bool isComplete() const { return graphicsFamilyIndex.has_value() && presentFamilyIndex.has_value(); }
+    std::unordered_set<uint32_t> getIndices() const { return {graphicsFamilyIndex.value(), presentFamilyIndex.value()}; }
+};
+
+struct QueueInfo {
+    // uint32_t graphicsQueueCount;
+    // uint32_t presentQueueCount;
+    uint32_t queueCount;
+    std::vector<VkQueue> vecGraphicsQueue;
+    std::vector<VkQueue> vecPresentQueue;
+
+    QueueInfo(uint32_t count = 1) {
+        queueCount = count;
+        vecGraphicsQueue.resize(count);
+        vecPresentQueue.resize(count);
+    }
 };
 
 struct vulkanContext {
+    VkFormat swapChainFormat;
+    VkExtent2D swapChainExtent;
+
     VkInstance ins{VK_NULL_HANDLE};
     VkPhysicalDevice phyDev{VK_NULL_HANDLE};
     VkSurfaceKHR surface{VK_NULL_HANDLE};
     CapableQueueFamilies indices;
     VkDevice dev{VK_NULL_HANDLE};
+    QueueInfo queueInfo;
     VkSwapchainKHR swapChain{VK_NULL_HANDLE};
     std::vector<VkImage> vecSwapChainImage;
     std::vector<VkImageView> vecSwapChainImageView;
     VkDebugUtilsMessengerEXT debugMessenger{VK_NULL_HANDLE};
+    VkRenderPass renderPass{VK_NULL_HANDLE};
+    VkShaderModule vertSM{VK_NULL_HANDLE};
+    VkShaderModule fragSM{VK_NULL_HANDLE};
+    VkPipelineLayout pipelineLayout{VK_NULL_HANDLE};
+    VkPipeline pipeline{VK_NULL_HANDLE};
+    std::vector<VkFramebuffer> vecSwapChainFramebuffer;
+
+    VkCommandPool commandPool{VK_NULL_HANDLE};
+    std::vector<VkCommandBuffer> vecCommandBuffer;
+
+    VkSemaphore imageAvailableSemaphore{VK_NULL_HANDLE};
+    VkSemaphore renderFinishedSemaphore{VK_NULL_HANDLE};
+    VkFence fence{VK_NULL_HANDLE};
 };
 
 struct SwapChainSupportDetails {
@@ -104,7 +138,43 @@ struct SwapChainSupportDetails {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
+static void destroyShaderModule(vulkanContext &ctx) {
+    if (ctx.vertSM) {
+        vkDestroyShaderModule(ctx.dev, ctx.vertSM, nullptr);
+        ctx.vertSM = VK_NULL_HANDLE;
+    }
+    if (ctx.fragSM) {
+        vkDestroyShaderModule(ctx.dev, ctx.fragSM, nullptr);
+        ctx.fragSM = VK_NULL_HANDLE;
+    }
+}
+
 static void destroyContext(vulkanContext &ctx) {
+    if (ctx.fence) {
+        vkDestroyFence(ctx.dev, ctx.fence, nullptr);
+    }
+    if (ctx.renderFinishedSemaphore) {
+        vkDestroySemaphore(ctx.dev, ctx.renderFinishedSemaphore, nullptr);
+    }
+    if (ctx.imageAvailableSemaphore) {
+        vkDestroySemaphore(ctx.dev, ctx.imageAvailableSemaphore, nullptr);
+    }
+    if (ctx.commandPool) {
+        vkDestroyCommandPool(ctx.dev, ctx.commandPool, nullptr);
+    }
+    for (auto framebuffer : ctx.vecSwapChainFramebuffer) {
+        vkDestroyFramebuffer(ctx.dev, framebuffer, nullptr);
+    }
+    if (ctx.pipeline) {
+        vkDestroyPipeline(ctx.dev, ctx.pipeline, nullptr);
+    }
+    if (ctx.pipelineLayout) {
+        vkDestroyPipelineLayout(ctx.dev, ctx.pipelineLayout, nullptr);
+    }
+    destroyShaderModule(ctx);
+    if (ctx.renderPass) {
+        vkDestroyRenderPass(ctx.dev, ctx.renderPass, nullptr);
+    }
     for (auto iv : ctx.vecSwapChainImageView) {
         vkDestroyImageView(ctx.dev, iv, nullptr);
     }
@@ -124,6 +194,21 @@ static void destroyContext(vulkanContext &ctx) {
     if (ctx.ins) {
         vkDestroyInstance(ctx.ins, nullptr);
     }
+}
+
+static bool loadFileAsBinary(const char *url, std::vector<char> &out) {
+    std::ifstream _file(url, std::ios::ate | std::ios::binary);
+    if (_file.is_open()) {
+        size_t _sizeInBytes = _file.tellg();
+        out.resize(_sizeInBytes);
+        _file.seekg(0);
+        _file.read(out.data(), _sizeInBytes);
+        _file.close();
+
+        return true;
+    }
+
+    return false;
 }
 
 } // namespace utils
